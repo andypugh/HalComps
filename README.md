@@ -1,2 +1,3 @@
 # HalComps
-LinuxCNC HAL Components
+LinuxCNC HAL Components not generally useful enough to be submitted to the main LinuxCNC repository
+
