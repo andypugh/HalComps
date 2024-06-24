@@ -1,0 +1,106 @@
+component gearchoice "A component to choose spindle gears according to spindle speed";
+pin in float speed-command;
+pin in float motor-speed-fb;
+pin in float spindle-speed-fb;
+pin in signed motion-mode;
+pin in signed motion-mask = 3;
+pin in bit spindle-on;
+pin in bit manual-low;
+pin in bit manual-high;
+pin in bit brake-enable;
+pin out float motor-speed;
+pin out bit low-gear;
+pin out bit high-gear;
+pin out bit brake;
+param rw float low-ratio=3;
+param rw float high-ratio=1;
+param rw float max-low = 500;
+
+include "rtapi_math.h";
+
+author "andy pugh";
+license "GPL";
+function _;
+
+;;
+
+FUNCTION(_){
+    static int state;
+    double des_motor_speed;
+    
+    switch (state) {
+    case 0: // spindle off
+        if (spindle_on){
+            if (manual_high){
+                state = 1;
+            } else if (manual_low){
+                state = 2;
+            } else if (speed_command > max_low){
+                state = 1;
+            } else {
+                state = 2;
+            }
+        } else { // spindle off
+            high_gear = 0;
+            low_gear = 0;
+            brake = brake_enable;
+        }
+        break;
+    case 1: // high
+        high_gear = 1;
+        low_gear = 0;
+        brake = 0;
+        motor_speed = speed_command * high_ratio;
+        if( ! spindle_on){
+            state = 0;
+        }
+        if (speed_command <= 0.9 * max_low) {
+            if ( ! manual_high && (1 << motion_mode & motion_mask)){
+                state = 3;
+                high_gear = 0;
+            }
+        }
+        break;
+    case 2: // low
+        high_gear = 0;
+        low_gear = 1;
+        brake = 0;
+        motor_speed = speed_command * low_ratio;
+        if( ! spindle_on){
+            state = 0;
+        }
+        if (speed_command > max_low) {
+            if ( ! manual_low && (1 << motion_mode & motion_mask)){
+                state = 4;
+                low_gear = 0;
+            }
+        }
+        break;
+    case 3: // High to low gear shift
+        des_motor_speed = spindle_speed_fb * low_ratio;
+        motor_speed = 1.2 * des_motor_speed;
+        if( ! spindle_on){
+            state = 0;
+        }
+        if (fabs(des_motor_speed - motor_speed_fb) < 100){
+            state = 2;
+        }
+        break;
+    case 4: // Low to High gear shift
+        des_motor_speed = spindle_speed_fb * high_ratio;
+        //motor_speed = 0.9 * des_motor_speed;
+	motor_speed = 0;
+        if( ! spindle_on){
+            state = 0;
+        }
+        if (fabs(des_motor_speed - motor_speed_fb)  < 300){
+            state = 1;
+        }
+        break;
+    }
+}
+
+
+        
+    
+

@@ -1,0 +1,42 @@
+component hexbore "A component to bore polygonal holes";
+
+include "rtapi_math.h";
+
+pin in float spindle-position "scaled 1.0 per rev";
+pin in float radius "halui.axis.x.position-relative";
+pin in unsigned facets=6;
+pin in float relief = 0;
+pin in bit enable;
+
+pin out signed offset "scaled x10000";
+pin out float angle;
+pin out unsigned version = 6;
+
+function _;
+
+license "GPL";
+author "andy pugh";
+
+;;
+
+
+double fmod(double x, double y){
+return x - y * (floor(x / y));
+}
+
+FUNCTION (_){
+
+    if (! enable || (facets < 4 && relief == 0) || (facets <1  && relief != 0)) {
+        offset = 0;
+        return;
+    }
+
+    if (relief == 0){
+        angle = (fmod(spindle_position, 1.0 / facets) - 1.0 / (2.0 * facets)) * 6.283185307179586;
+        offset = 10000 * ((radius / cos(angle)) - radius);
+    } else {
+        offset = 5000 * relief * (cos(spindle_position * facets * 6.283185307179586) - 1);
+    }
+}
+
+

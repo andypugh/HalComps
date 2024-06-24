@@ -1,0 +1,23 @@
+component jog_rate;
+
+pin in s32 counts;
+pin in float inc_vals-#[3];
+pin out float jog_inc;
+
+license "gpl2+";
+author "andypugh";
+
+function _;
+
+;;
+
+static int oldcounts = 0;
+static int index = 0;
+if (counts > oldcounts) index++;
+if (counts < oldcounts) index--;
+if (index < 0) index = 0;
+if (index > 2) index = 2;
+oldcounts = counts;
+
+jog_inc = inc_vals(index);
+
